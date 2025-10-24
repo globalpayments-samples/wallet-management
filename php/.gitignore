@@ -6,3 +6,6 @@ composer.phar
 .DS_Store
 .idea/
 .vscode/
+
+## Payment Data (sensitive)
+data/*.json
