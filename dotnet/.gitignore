@@ -8,3 +8,6 @@ obj/
 *.vs/
 *.vscode/
 *.idea/
+
+## Payment Data (sensitive)
+data/*.json
