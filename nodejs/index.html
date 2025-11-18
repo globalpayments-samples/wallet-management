@@ -130,19 +130,6 @@
 
                         <h3 style="margin: 24px 0 16px 0; color: #333;">Payment Information</h3>
 
-                        <!-- Saved Payment Method Helper -->
-                        <div class="gp-form-group" style="background: #f0f8ff; border: 1px solid #b3d9ff; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
-                            <label for="saved-card-select" class="gp-label" style="margin-bottom: 8px;">
-                                💳 Use Saved Payment Method:
-                            </label>
-                            <select id="saved-card-select" class="gp-select">
-                                <option value="">Select a saved card...</option>
-                            </select>
-                            <small style="color: #6c757d; font-size: 12px; margin-top: 4px; display: block;">
-                                Select a previously saved payment method to populate the form. You can edit details if needed.
-                            </small>
-                        </div>
-
                         <!-- Test Card Helper -->
                         <div class="gp-form-group" style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
                             <label for="test-card-select" class="gp-label" style="margin-bottom: 8px;">
@@ -606,72 +593,8 @@
                 toggleMockMode(e.target.checked);
             });
 
-            // Saved card select handler
-            document.getElementById('saved-card-select').addEventListener('change', handleSavedCardSelect);
-
             // Test card select handler
             document.getElementById('test-card-select').addEventListener('change', handleTestCardSelect);
-        }
-
-        // Handle saved card selection
-        async function handleSavedCardSelect(event) {
-            const paymentMethodId = event.target.value;
-            if (!paymentMethodId) return;
-
-            try {
-                const response = await fetch(`${API_BASE}/payment-methods`);
-                const data = await response.json();
-
-                if (data.success) {
-                    const selectedMethod = data.data.find(m => m.id === paymentMethodId);
-                    if (selectedMethod && selectedMethod.customerData) {
-                        // Populate customer information
-                        document.getElementById('first_name').value = selectedMethod.customerData.first_name || '';
-                        document.getElementById('last_name').value = selectedMethod.customerData.last_name || '';
-                        document.getElementById('email').value = selectedMethod.customerData.email || '';
-                        document.getElementById('phone').value = selectedMethod.customerData.phone || '';
-                        document.getElementById('street_address').value = selectedMethod.customerData.street_address || '';
-                        document.getElementById('city').value = selectedMethod.customerData.city || '';
-                        document.getElementById('state').value = selectedMethod.customerData.state || '';
-                        document.getElementById('billing_zip').value = selectedMethod.customerData.billing_zip || '';
-                        document.getElementById('country').value = selectedMethod.customerData.country || '';
-
-                        // Set nickname and default status
-                        document.getElementById('nickname').value = selectedMethod.nickname || '';
-                        document.getElementById('is-default').checked = selectedMethod.isDefault || false;
-
-                        // Show info banner
-                        showSavedCardInfo(selectedMethod);
-                    }
-                }
-            } catch (error) {
-                console.error('Error loading saved card:', error);
-            }
-
-            // Reset select
-            event.target.value = '';
-        }
-
-        function showSavedCardInfo(method) {
-            const infoDiv = document.createElement('div');
-            infoDiv.id = 'saved-card-info';
-            infoDiv.className = 'gp-alert';
-            infoDiv.style.cssText = 'background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px;';
-            infoDiv.innerHTML = `
-                <strong>ℹ️ Loaded Saved Card:</strong> ${method.brand} ending in ${method.last4}
-                <button type="button" onclick="clearSavedCardInfo()" style="float: right; background: none; border: none; cursor: pointer; font-size: 20px; color: #0c5460; line-height: 1;">&times;</button>
-            `;
-
-            const existingInfo = document.getElementById('saved-card-info');
-            if (existingInfo) existingInfo.remove();
-
-            const form = document.getElementById('add-card-form');
-            form.insertBefore(infoDiv, form.firstChild);
-        }
-
-        function clearSavedCardInfo() {
-            const info = document.getElementById('saved-card-info');
-            if (info) info.remove();
         }
 
         function handleTestCardSelect(event) {

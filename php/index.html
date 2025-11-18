@@ -47,7 +47,7 @@
         <!-- Page Title -->
         <h1 class="gp-page-title">SDK Integration Examples</h1>
         <p class="gp-page-subtitle">Explore comprehensive examples of Global Payments SDK implementations across different payment scenarios.</p>
-        
+
         <!-- Mock Mode Banner -->
         <div id="mock-mode-banner" class="gp-hidden" style="border-radius: 8px; padding: 16px; margin: 20px 0;">
             <div style="display: flex; align-items: center; gap: 12px;">
@@ -75,7 +75,7 @@
                             Add a new credit card to your vault for secure storage and future payments.
                         </p>
                     </div>
-                    
+
                     <!-- Customer Information Section -->
                     <form id="add-card-form" class="gp-form">
                         <h3 style="margin-bottom: 16px; color: #333;">Customer Information</h3>
@@ -129,19 +129,6 @@
                         </div>
 
                         <h3 style="margin: 24px 0 16px 0; color: #333;">Payment Information</h3>
-
-                        <!-- Saved Payment Method Helper -->
-                        <div class="gp-form-group" style="background: #f0f8ff; border: 1px solid #b3d9ff; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
-                            <label for="saved-card-select" class="gp-label" style="margin-bottom: 8px;">
-                                💳 Use Saved Payment Method:
-                            </label>
-                            <select id="saved-card-select" class="gp-select">
-                                <option value="">Select a saved card...</option>
-                            </select>
-                            <small style="color: #6c757d; font-size: 12px; margin-top: 4px; display: block;">
-                                Select a previously saved payment method to populate the form. You can edit details if needed.
-                            </small>
-                        </div>
 
                         <!-- Test Card Helper -->
                         <div class="gp-form-group" style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
@@ -219,7 +206,7 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- Edit Payment Method Modal -->
         <div id="edit-modal-overlay" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; justify-content: center; align-items: center;">
             <div class="modal-content" style="background: white; border-radius: 12px; padding: 32px; width: 90%; max-width: 500px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);">
@@ -227,14 +214,14 @@
                     <h3 style="margin: 0; color: #333; font-size: 20px; font-weight: 600;">Edit Payment Method</h3>
                     <button onclick="closeEditModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #666; padding: 0; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">&times;</button>
                 </div>
-                
+
                 <div class="modal-body">
                     <!-- Card details (read-only) -->
                     <div class="gp-form-group">
                         <label class="gp-label">Card Number:</label>
                         <div id="edit-card-display" class="gp-input" style="background: #f5f5f5; border: 1px solid #ddd; color: #666; cursor: not-allowed;">**** **** **** 1234</div>
                     </div>
-                    
+
                     <div class="gp-form-row">
                         <div class="gp-form-group">
                             <label class="gp-label">Card Brand:</label>
@@ -245,13 +232,13 @@
                             <div id="edit-expiry-display" class="gp-input" style="background: #f5f5f5; border: 1px solid #ddd; color: #666; cursor: not-allowed;">12/2025</div>
                         </div>
                     </div>
-                    
+
                     <!-- Editable fields -->
                     <div class="gp-form-group">
                         <label for="edit-nickname" class="gp-label">Nickname (Optional):</label>
                         <input type="text" id="edit-nickname" class="gp-input" placeholder="My Primary Card" maxlength="50">
                     </div>
-                    
+
                     <div class="gp-form-group">
                         <label class="gp-checkbox-label">
                             <input type="checkbox" id="edit-is-default" class="gp-checkbox">
@@ -259,7 +246,7 @@
                         </label>
                     </div>
                 </div>
-                
+
                 <div class="modal-footer" style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; border-top: 1px solid #eee; padding-top: 24px;">
                     <button onclick="closeEditModal()" class="gp-button gp-button-secondary">Cancel</button>
                     <button onclick="saveEditedPaymentMethod()" class="gp-button gp-button-primary">Save Changes</button>
@@ -315,10 +302,10 @@
 
         // API base URL
         const API_BASE = window.location.origin;
-        
+
         // Global mock mode state
         let mockModeEnabled = false;
-        
+
         // Global Payments configuration
         let gpConfig = null;
         let cardForm = null;
@@ -426,13 +413,13 @@
             await loadPaymentMethods();
             setupEventHandlers();
         }
-        
+
         // Load current mock mode status
         async function loadMockModeStatus() {
             try {
                 const response = await fetch(`${API_BASE}/mock-mode`);
                 const data = await response.json();
-                
+
                 if (data.success) {
                     mockModeEnabled = data.data.isEnabled;
                     updateMockModeUI(mockModeEnabled);
@@ -444,7 +431,7 @@
                 updateMockModeUI(false);
             }
         }
-        
+
         // Toggle mock mode
         async function toggleMockMode(enabled) {
             try {
@@ -455,9 +442,9 @@
                     },
                     body: JSON.stringify({ isEnabled: enabled })
                 });
-                
+
                 const result = await response.json();
-                
+
                 if (result.success) {
                     mockModeEnabled = enabled;
                     updateMockModeUI(enabled);
@@ -475,7 +462,7 @@
                 console.error('Error toggling mock mode:', error);
             }
         }
-        
+
         // Update mock mode UI elements
         function updateMockModeUI(enabled) {
             const checkbox = document.getElementById('mock-mode-checkbox');
@@ -486,16 +473,16 @@
             const bannerEmoji = document.getElementById('mock-mode-emoji');
             const bannerTitle = document.getElementById('mock-mode-title');
             const bannerDesc = document.getElementById('mock-mode-description');
-            
+
             checkbox.checked = enabled;
-            
+
             if (enabled) {
                 // Mock mode enabled
                 status.textContent = 'MOCK';
                 status.style.color = '#ff9800';
                 slider.style.backgroundColor = '#ff9800';
                 button.style.transform = 'translateX(26px)';
-                
+
                 // Show banner
                 banner.classList.remove('gp-hidden');
                 banner.style.background = '#fff3cd';
@@ -510,7 +497,7 @@
                 status.style.color = '#4CAF50';
                 slider.style.backgroundColor = '#4CAF50';
                 button.style.transform = 'translateX(0px)';
-                
+
                 // Hide banner initially (will show if needed)
                 banner.classList.add('gp-hidden');
             }
@@ -521,7 +508,7 @@
             try {
                 const response = await fetch(`${API_BASE}/payment-methods`);
                 const data = await response.json();
-                
+
                 if (data.success) {
                     displayPaymentMethods(data.data);
                     populatePaymentMethodSelect(data.data);
@@ -536,7 +523,7 @@
         // Display payment methods in the list
         function displayPaymentMethods(methods) {
             const container = document.getElementById('payment-methods-list');
-            
+
             if (methods.length === 0) {
                 container.innerHTML = '<p class="gp-text-muted">No payment methods saved yet. Add one using the "Add Card" tab.</p>';
                 return;
@@ -544,7 +531,7 @@
 
             const methodsHtml = methods.map(method => {
                 const maskedNumber = `**** **** **** ${method.last4}`;
-                
+
                 return `
                 <div class="gp-card gp-mb-md">
                     <div class="gp-card-body">
@@ -558,7 +545,7 @@
                                 </div>
                             </div>
                             <div style="display: flex; gap: 8px; align-items: center;">
-                                <button class="gp-button gp-button-secondary" style="padding: 6px 12px; font-size: 12px;" 
+                                <button class="gp-button gp-button-secondary" style="padding: 6px 12px; font-size: 12px;"
                                         onclick="openEditModal('${method.id}', '${method.brand}', '${method.last4}', '${method.expiry}', '${method.nickname || ''}', ${method.isDefault})">
                                     Edit
                                 </button>
@@ -606,72 +593,8 @@
                 toggleMockMode(e.target.checked);
             });
 
-            // Saved card select handler
-            document.getElementById('saved-card-select').addEventListener('change', handleSavedCardSelect);
-
             // Test card select handler
             document.getElementById('test-card-select').addEventListener('change', handleTestCardSelect);
-        }
-
-        // Handle saved card selection
-        async function handleSavedCardSelect(event) {
-            const paymentMethodId = event.target.value;
-            if (!paymentMethodId) return;
-
-            try {
-                const response = await fetch(`${API_BASE}/payment-methods`);
-                const data = await response.json();
-
-                if (data.success) {
-                    const selectedMethod = data.data.find(m => m.id === paymentMethodId);
-                    if (selectedMethod && selectedMethod.customerData) {
-                        // Populate customer information
-                        document.getElementById('first_name').value = selectedMethod.customerData.first_name || '';
-                        document.getElementById('last_name').value = selectedMethod.customerData.last_name || '';
-                        document.getElementById('email').value = selectedMethod.customerData.email || '';
-                        document.getElementById('phone').value = selectedMethod.customerData.phone || '';
-                        document.getElementById('street_address').value = selectedMethod.customerData.street_address || '';
-                        document.getElementById('city').value = selectedMethod.customerData.city || '';
-                        document.getElementById('state').value = selectedMethod.customerData.state || '';
-                        document.getElementById('billing_zip').value = selectedMethod.customerData.billing_zip || '';
-                        document.getElementById('country').value = selectedMethod.customerData.country || '';
-
-                        // Set nickname and default status
-                        document.getElementById('nickname').value = selectedMethod.nickname || '';
-                        document.getElementById('is-default').checked = selectedMethod.isDefault || false;
-
-                        // Show info banner
-                        showSavedCardInfo(selectedMethod);
-                    }
-                }
-            } catch (error) {
-                console.error('Error loading saved card:', error);
-            }
-
-            // Reset select
-            event.target.value = '';
-        }
-
-        function showSavedCardInfo(method) {
-            const infoDiv = document.createElement('div');
-            infoDiv.id = 'saved-card-info';
-            infoDiv.className = 'gp-alert';
-            infoDiv.style.cssText = 'background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px;';
-            infoDiv.innerHTML = `
-                <strong>ℹ️ Loaded Saved Card:</strong> ${method.brand} ending in ${method.last4}
-                <button type="button" onclick="clearSavedCardInfo()" style="float: right; background: none; border: none; cursor: pointer; font-size: 20px; color: #0c5460; line-height: 1;">&times;</button>
-            `;
-
-            const existingInfo = document.getElementById('saved-card-info');
-            if (existingInfo) existingInfo.remove();
-
-            const form = document.getElementById('add-card-form');
-            form.insertBefore(infoDiv, form.firstChild);
-        }
-
-        function clearSavedCardInfo() {
-            const info = document.getElementById('saved-card-info');
-            if (info) info.remove();
         }
 
         function handleTestCardSelect(event) {
@@ -764,7 +687,7 @@
         function hideTestCardData() {
             document.getElementById('test-card-data').classList.add('gp-hidden');
         }
-        
+
         async function submitPaymentMethodWithToken(cardDetails) {
             const token = document.getElementById('payment-token').value;
             const nickname = document.getElementById('nickname').value;
@@ -873,7 +796,7 @@
         function displayError(containerId, message) {
             const container = document.getElementById(containerId);
             const isLiveError = !mockModeEnabled;
-            
+
             container.innerHTML = `
                 <div class="gp-alert gp-alert-error" style="background-color: #ffebee; color: #c62828; border: 1px solid #ef5350;">
                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
@@ -883,7 +806,7 @@
                     <div style="margin-bottom: 8px;">${message}</div>
                     ${isLiveError ? `
                         <div style="font-size: 12px; background: #ffcdd2; padding: 8px; border-radius: 4px; border-left: 4px solid #d32f2f; margin-top: 12px;">
-                            <strong>🚨 This is a real error from the live API.</strong> 
+                            <strong>🚨 This is a real error from the live API.</strong>
                             Check your configuration, review server console logs, or contact support if needed.
                             <div style="margin-top: 4px; font-style: italic;">
                                 💡 Tip: Enable Mock Mode to continue testing while troubleshooting.
@@ -891,7 +814,7 @@
                         </div>
                     ` : `
                         <div style="font-size: 12px; color: #ff9800; background: #fff8e1; padding: 8px; border-radius: 4px; margin-top: 8px;">
-                            <strong>ℹ️ Mock Mode:</strong> This error occurred in mock mode for demonstration. 
+                            <strong>ℹ️ Mock Mode:</strong> This error occurred in mock mode for demonstration.
                             Switch to Live Mode to see real API behavior.
                         </div>
                     `}
@@ -899,43 +822,43 @@
             `;
             container.classList.remove('gp-hidden');
         }
-        
+
         // Edit modal functions
         let editingPaymentMethodId = null;
-        
+
         function openEditModal(id, brand, last4, expiry, nickname, isDefault) {
             editingPaymentMethodId = id;
-            
+
             // Update read-only displays
             document.getElementById('edit-card-display').textContent = `**** **** **** ${last4}`;
             document.getElementById('edit-brand-display').textContent = brand.toUpperCase();
             document.getElementById('edit-expiry-display').textContent = expiry;
-            
+
             // Set editable values
             document.getElementById('edit-nickname').value = nickname || '';
             document.getElementById('edit-is-default').checked = isDefault;
-            
+
             // Show modal
             const modal = document.getElementById('edit-modal-overlay');
             modal.style.display = 'flex';
-            
+
             // Focus on nickname field
             setTimeout(() => {
                 document.getElementById('edit-nickname').focus();
             }, 100);
         }
-        
+
         function closeEditModal() {
             document.getElementById('edit-modal-overlay').style.display = 'none';
             editingPaymentMethodId = null;
         }
-        
+
         async function saveEditedPaymentMethod() {
             if (!editingPaymentMethodId) return;
-            
+
             const nickname = document.getElementById('edit-nickname').value.trim();
             const isDefault = document.getElementById('edit-is-default').checked;
-            
+
             try {
                 const response = await fetch(`${API_BASE}/payment-methods`, {
                     method: 'POST',
@@ -955,11 +878,11 @@
                 });
 
                 const result = await response.json();
-                
+
                 if (result.success) {
                     closeEditModal();
                     await loadPaymentMethods(); // Refresh the payment methods list
-                    
+
                     // Show success message briefly
                     const container = document.getElementById('payment-methods-list');
                     const successDiv = document.createElement('div');
@@ -969,7 +892,7 @@
                         </div>
                     `;
                     container.parentNode.insertBefore(successDiv, container);
-                    
+
                     setTimeout(() => {
                         successDiv.remove();
                     }, 3000);
@@ -980,7 +903,7 @@
                 displayError('edit-modal-overlay', 'Error updating payment method: ' + error.message);
             }
         }
-        
+
         async function makeDefault(paymentMethodId) {
             try {
                 const response = await fetch(`${API_BASE}/payment-methods`, {
@@ -1000,10 +923,10 @@
                 });
 
                 const result = await response.json();
-                
+
                 if (result.success) {
                     await loadPaymentMethods(); // Refresh the payment methods list
-                    
+
                     // Show success message briefly
                     const container = document.getElementById('payment-methods-list');
                     const successDiv = document.createElement('div');
@@ -1013,7 +936,7 @@
                         </div>
                     `;
                     container.parentNode.insertBefore(successDiv, container);
-                    
+
                     setTimeout(() => {
                         successDiv.remove();
                     }, 3000);
