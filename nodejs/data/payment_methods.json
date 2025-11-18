@@ -1,0 +1,71 @@
+[
+  {
+    "id": "pm_mhpeos18_2a26c36b36a42544",
+    "storedPaymentToken": "PMT_1ff3e74f-ebed-4e7d-89ef-cf1adda6253c",
+    "cardBrand": "Mastercard",
+    "last4": "5780",
+    "expiryMonth": "12",
+    "expiryYear": "2028",
+    "nickname": "Test MasterCard 1",
+    "isDefault": false,
+    "customerData": {
+      "first_name": "Jane",
+      "last_name": "Doe",
+      "email": "jane.doe@example.com",
+      "phone": "5551112222",
+      "street_address": "1 Example Way",
+      "city": "Jeffersonville",
+      "state": "IN",
+      "billing_zip": "47130",
+      "country": "USA"
+    },
+    "createdAt": "2025-11-07T22:07:15.834Z",
+    "updatedAt": "2025-11-07T22:07:15.834Z"
+  },
+  {
+    "id": "pm_mi51i1io_9f0d6687da80c893",
+    "storedPaymentToken": "PMT_1c218920-f7ec-42c8-aa19-fbfd68897e02",
+    "cardBrand": "Mastercard",
+    "last4": "0014",
+    "expiryMonth": "12",
+    "expiryYear": "2028",
+    "nickname": "Test MasterCard 2",
+    "isDefault": false,
+    "customerData": {
+      "first_name": "Jane",
+      "last_name": "Doe",
+      "email": "jane.doe@example.com",
+      "phone": "5551112222",
+      "street_address": "1 Example Way",
+      "city": "Jeffersonville",
+      "state": "IN",
+      "billing_zip": "47130",
+      "country": "USA"
+    },
+    "createdAt": "2025-11-18T20:42:25.485Z",
+    "updatedAt": "2025-11-18T20:42:25.485Z"
+  },
+  {
+    "id": "pm_mi51mv58_6c11a42a1279079c",
+    "storedPaymentToken": "PMT_da1df6cf-6a8d-47a1-ba7d-51d2c14af477",
+    "cardBrand": "Mastercard",
+    "last4": "5780",
+    "expiryMonth": "12",
+    "expiryYear": "2028",
+    "nickname": "Test MasterCard 1",
+    "isDefault": false,
+    "customerData": {
+      "first_name": "Jane",
+      "last_name": "Doe",
+      "email": "jane.doe@example.com",
+      "phone": "5551112222",
+      "street_address": "1 Example Way",
+      "city": "Jeffersonville",
+      "state": "IN",
+      "billing_zip": "47130",
+      "country": "USA"
+    },
+    "createdAt": "2025-11-18T20:46:10.949Z",
+    "updatedAt": "2025-11-18T20:46:10.949Z"
+  }
+]
