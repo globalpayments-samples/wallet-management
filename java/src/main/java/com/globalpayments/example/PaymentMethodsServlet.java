@@ -169,11 +169,28 @@ public class PaymentMethodsServlet extends HttpServlet {
                             System.err.println("❌ LIVE MODE - Multi-use token creation failed:");
                             System.err.println("   Error: " + e.getMessage());
                             e.printStackTrace();
-                            // Fall back to mock mode
-                            mockMode = true;
-                            cardDetails = MockResponses.getCardDetailsFromToken(paymentToken);
-                            finalToken = paymentToken;
-                            System.out.println("🟡 FALLBACK - Switching to mock mode due to token creation failure");
+
+                            // Check if this is an authentication/authorization error
+                            String errorMessage = e.getMessage();
+                            boolean isAuthError = errorMessage != null && (
+                                errorMessage.contains("ACTION_NOT_AUTHORIZED") ||
+                                errorMessage.contains("NOT_AUTHENTICATED") ||
+                                errorMessage.contains("INVALID_CREDENTIALS") ||
+                                errorMessage.contains("Permission")
+                            );
+
+                            if (isAuthError) {
+                                sendErrorResponse(response, 403,
+                                    "Authentication failed: Access token and merchant credentials do not match. Please verify your GP_API_APP_ID and GP_API_APP_KEY configuration.",
+                                    "AUTHENTICATION_ERROR");
+                                return;
+                            }
+
+                            // For other errors, return proper error response (no mock fallback)
+                            sendErrorResponse(response, 500,
+                                "Failed to create payment method: " + errorMessage,
+                                "TOKEN_CREATION_ERROR");
+                            return;
                         }
                     } else {
                         System.err.println("❌ CONFIGURATION ERROR - No GP_API_APP_KEY found in environment");
@@ -206,10 +223,28 @@ public class PaymentMethodsServlet extends HttpServlet {
                             System.err.println("❌ LIVE MODE - Token lookup failed:");
                             System.err.println("   Error: " + e.getMessage());
                             e.printStackTrace();
-                            // Fall back to mock mode
-                            mockMode = true;
-                            cardDetails = MockResponses.getCardDetailsFromToken(storedPaymentToken);
-                            System.out.println("🟡 FALLBACK - Switching to mock mode due to lookup failure");
+
+                            // Check if this is an authentication/authorization error
+                            String errorMessage = e.getMessage();
+                            boolean isAuthError = errorMessage != null && (
+                                errorMessage.contains("ACTION_NOT_AUTHORIZED") ||
+                                errorMessage.contains("NOT_AUTHENTICATED") ||
+                                errorMessage.contains("INVALID_CREDENTIALS") ||
+                                errorMessage.contains("Permission")
+                            );
+
+                            if (isAuthError) {
+                                sendErrorResponse(response, 403,
+                                    "Authentication failed: Access token and merchant credentials do not match. Please verify your GP_API_APP_ID and GP_API_APP_KEY configuration.",
+                                    "AUTHENTICATION_ERROR");
+                                return;
+                            }
+
+                            // For other errors, return proper error response (no mock fallback)
+                            sendErrorResponse(response, 500,
+                                "Failed to retrieve token details: " + errorMessage,
+                                "TOKEN_LOOKUP_ERROR");
+                            return;
                         }
                     } else {
                         System.err.println("❌ CONFIGURATION ERROR - No GP_API_APP_KEY found in environment");

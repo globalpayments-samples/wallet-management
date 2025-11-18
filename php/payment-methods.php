@@ -130,8 +130,26 @@ try {
                     $finalToken = $multiUseTokenData['multiUseToken'];
                 } catch (\Exception $e) {
                     error_log('Multi-use token creation error: ' . $e->getMessage());
-                    // Fall back to mock mode if token creation fails
-                    $mockMode = true;
+
+                    // Check if this is an authentication/authorization error
+                    $errorMessage = $e->getMessage();
+                    $isAuthError = stripos($errorMessage, 'ACTION_NOT_AUTHORIZED') !== false ||
+                                   stripos($errorMessage, 'NOT_AUTHENTICATED') !== false ||
+                                   stripos($errorMessage, 'INVALID_CREDENTIALS') !== false ||
+                                   stripos($errorMessage, 'Permission') !== false;
+
+                    if ($isAuthError) {
+                        PaymentUtils::sendErrorResponse(403,
+                            'Authentication failed: Access token and merchant credentials do not match. Please verify your GP_API_APP_ID and GP_API_APP_KEY configuration.',
+                            'AUTHENTICATION_ERROR');
+                        exit;
+                    }
+
+                    // For other errors, return proper error response (no mock fallback)
+                    PaymentUtils::sendErrorResponse(500,
+                        'Failed to create payment method: ' . $errorMessage,
+                        'TOKEN_CREATION_ERROR');
+                    exit;
                 }
             }
 

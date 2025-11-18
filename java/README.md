@@ -5,7 +5,7 @@ This example demonstrates a comprehensive wallet management system using Jakarta
 ## Features
 
 - **Payment Method Management** - Store, retrieve, and manage customer payment methods securely
-- **Tokenization** - Securely tokenize and store payment methods using Global Payments vault
+- **Tokenization** - Securely tokenize and store payment methods using Global Payments wallet
 - **Multi-Use Token Creation** - Convert single-use tokens to multi-use stored payment tokens with customer data
 - **Wallet Management** - Secure storage and management of payment methods
 - **Mock Mode** - Test wallet flows with simulated responses without hitting live APIs

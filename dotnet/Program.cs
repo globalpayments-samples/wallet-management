@@ -408,7 +408,35 @@ public class Program
                 catch (Exception ex)
                 {
                     Console.Error.WriteLine($"Multi-use token creation error: {ex.Message}");
-                    mockModeEnabled = true;
+
+                    // Check if this is an authentication/authorization error
+                    string errorMessage = ex.Message;
+                    bool isAuthError = errorMessage != null && (
+                        errorMessage.Contains("ACTION_NOT_AUTHORIZED", StringComparison.OrdinalIgnoreCase) ||
+                        errorMessage.Contains("NOT_AUTHENTICATED", StringComparison.OrdinalIgnoreCase) ||
+                        errorMessage.Contains("INVALID_CREDENTIALS", StringComparison.OrdinalIgnoreCase) ||
+                        errorMessage.Contains("Permission", StringComparison.OrdinalIgnoreCase)
+                    );
+
+                    if (isAuthError)
+                    {
+                        return Results.Json(new ApiResponse<object>
+                        {
+                            Success = false,
+                            Message = "Authentication failed: Access token and merchant credentials do not match. Please verify your GP_API_APP_ID and GP_API_APP_KEY configuration.",
+                            ErrorCode = "AUTHENTICATION_ERROR",
+                            Timestamp = DateTime.UtcNow
+                        }, statusCode: 403);
+                    }
+
+                    // For other errors, return proper error response (no mock fallback)
+                    return Results.Json(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = $"Failed to create payment method: {errorMessage}",
+                        ErrorCode = "TOKEN_CREATION_ERROR",
+                        Timestamp = DateTime.UtcNow
+                    }, statusCode: 500);
                 }
             }
 
