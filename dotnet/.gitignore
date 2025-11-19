@@ -9,5 +9,8 @@ obj/
 *.vscode/
 *.idea/
 
+## macOS
+.DS_Store
+
 ## Payment Data (sensitive)
 data/*.json
