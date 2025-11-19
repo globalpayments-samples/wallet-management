@@ -1,100 +1,93 @@
-# Global Payments SDK Starter Template
+# Global Payments Wallet Management System
 
-This starter template provides a customizable foundation for Global Payments SDK integration across multiple programming languages. Each implementation includes basic SDK setup, configuration management, and placeholder endpoints that you can modify for your specific payment use cases.
+A comprehensive wallet management system for storing and managing payment methods using Global Payments multi-use tokens. This system provides secure payment method storage across multiple programming languages, demonstrating how to tokenize and store customer payment information without processing actual payments.
 
 ## Available Implementations
 
 - [.NET Core](./dotnet/) - ASP.NET Core web application
-- [Go](./go/) - Go HTTP server application
 - [Java](./java/) - Jakarta EE servlet-based web application
 - [Node.js](./nodejs/) - Express.js web application
 - [PHP](./php/) - PHP web application
-- [Python](./python/) - Flask web application
 
-## Template Features
+## System Features
 
-- **SDK Configuration** - Basic setup with environment variables
-- **Placeholder Endpoints** - Ready-to-customize API endpoints  
-- **Error Handling** - Basic error handling structure
-- **Client Integration** - HTML form with hosted fields tokenization
-- **Multiple Languages** - Consistent structure across all implementations
+- **Multi-Use Token Creation** - Convert single-use tokens to secure stored payment tokens with customer data
+- **Payment Method Management** - Add, view, edit, and manage stored payment methods
+- **Mock Mode Testing** - Test functionality without live API credentials
+- **JSON-Based Storage** - Simple file-based storage for demonstration purposes
+- **Customer Data Integration** - Associate billing information with payment methods
+- **Multiple Languages** - Consistent API across all implementations
 
-## Customization Options
+## Core Functionality
 
-Each template includes:
+Each implementation provides:
 
-1. **Basic SDK Setup**
-   - Environment variable configuration
-   - Service URL configuration
-   - API key management
+1. **Wallet Management**
+   - Create and store payment methods with multi-use tokens
+   - List all saved payment methods
+   - Edit payment method details (nickname, default status)
+   - Associate customer billing information
 
-2. **Starter Endpoints**
-   - GET `/config` - Configuration endpoint
-   - POST `/process-payment` - Payment processing template
-   - Commented examples for additional endpoints (authorize, capture, refund, etc.)
+2. **API Endpoints**
+   - GET `/health` - System health check
+   - GET `/config` - Get public API configuration
+   - GET `/payment-methods` - List stored payment methods
+   - POST `/payment-methods` - Create or edit payment method
+   - GET `/mock-mode` - Check mock mode status
+   - POST `/mock-mode` - Toggle mock mode
 
-3. **Ready-to-Modify Structure**
-   - TODO comments for customization points
-   - Example payment logic you can adapt
-   - Placeholder functions for various payment flows
+3. **Security Features**
+   - Tokenized payment storage (no raw card data)
+   - Environment-based credential management
+   - PCI-compliant architecture
 
 ## Quick Start
 
-1. **Copy the template** - Copy this directory to start your new project
-2. **Choose your language** - Navigate to any implementation directory (nodejs, python, php, java, dotnet, go)
-3. **Set up credentials** - Copy `.env.sample` to `.env` and add your Global Payments API keys
-4. **Run the server** - Execute `./run.sh` to install dependencies and start the server
-5. **Customize** - Modify the code for your specific payment use case
+1. **Choose your implementation** - Navigate to any implementation directory (nodejs, php, java, dotnet)
+2. **Set up credentials** - Copy `.env.sample` to `.env` and add your Global Payments API keys
+3. **Run the server** - Execute `./run.sh` or follow implementation-specific instructions
+4. **Access the interface** - Open `http://localhost:8000` (or implementation-specific port)
+5. **Test with mock mode** - Enable mock mode to test without live credentials
 
-## Use Cases You Can Build
+## How It Works
 
-This template can be adapted for various payment scenarios:
+The wallet management system demonstrates:
 
-- **Basic Charges** - Simple one-time payments
-- **Authorization/Capture** - Two-step payment processing
-- **Subscriptions** - Recurring payment processing
-- **Refunds** - Payment reversal functionality
-- **Multi-step Checkouts** - Complex payment flows
-- **Payment Methods** - Credit cards, ACH, alternative payments
+- **Token Creation** - Convert single-use tokens (from frontend) to multi-use tokens (stored in backend)
+- **Customer Association** - Link payment methods with customer billing information
+- **Secure Storage** - Store tokens with associated metadata (last4, brand, expiry)
+- **Payment Method Retrieval** - List and manage stored payment methods
+- **Mock Testing** - Test all functionality without live API credentials
 
 ## Prerequisites
 
-- Global Payments account with API credentials
+- Global Payments account with API credentials (optional for mock mode)
 - Development environment for your chosen language
-- Package manager (npm, pip, composer, maven, dotnet, go mod)
+- Package manager (npm, composer, maven, or dotnet)
 
-## Customization Guide
+## Implementation Details
 
-### Adding New Endpoints
+Each implementation follows the same architecture:
 
-Each implementation includes commented examples for common payment operations:
+1. **Frontend** - HTML/JavaScript with Global Payments tokenization
+2. **Backend** - REST API handling token conversion and storage
+3. **Storage** - JSON file-based storage (replace with database for production)
+4. **SDK Integration** - Global Payments SDK for multi-use token creation
 
-```javascript
-// Authorization only
-app.post('/authorize', ...)
+### Technology Stack by Implementation
 
-// Capture authorized payment  
-app.post('/capture', ...)
+- **PHP** - Pure PHP with Global Payments SDK, JSON storage
+- **Java** - Jakarta EE servlets with Global Payments SDK
+- **.NET** - ASP.NET Core Minimal API with Global Payments SDK
+- **Node.js** - Express.js with Global Payments SDK
 
-// Process refund
-app.post('/refund', ...)
+## Production Considerations
 
-// Get transaction details
-app.get('/transaction/:id', ...)
-```
+For production deployment, enhance the system with:
 
-### Modifying Payment Logic
-
-1. Update the `/process-payment` endpoint for your specific flow
-2. Add validation for your required fields
-3. Customize error handling and responses
-4. Add logging and monitoring as needed
-
-### Production Considerations
-
-Enhance the template for production use with:
-- Input validation and sanitization
-- Comprehensive error handling and logging
-- Security headers and rate limiting
-- PCI compliance measures
-- Monitoring and alerting
+- **Database Storage** - Replace JSON with PostgreSQL/MySQL/MongoDB
+- **Authentication** - Add user authentication and authorization
+- **Security** - Implement HTTPS, rate limiting, and security headers
+- **PCI Compliance** - Ensure proper handling of payment data
+- **Monitoring** - Add logging, alerting, and performance monitoring
+- **Scalability** - Implement caching and load balancing
