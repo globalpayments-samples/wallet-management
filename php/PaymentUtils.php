@@ -116,9 +116,7 @@ class PaymentUtils
                 $response->responseMessage === TransactionStatus::CAPTURED) {
 
                 $brand = self::determineCardBrandFromType($cardDetails['cardType'] ?? '');
-                $multiUseToken = $response->token ?? $paymentToken; // check if token is sent, else log message and issue in creating token
-
-                error_log('Multi-use token created successfully: ' . substr($multiUseToken, 0, 8) . '...');
+                $multiUseToken = $response->token ?? $paymentToken;
 
                 return [
                     'multiUseToken' => $multiUseToken,
