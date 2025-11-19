@@ -70,7 +70,7 @@ public static class PaymentUtils
                 // Charge to convert single-use to multi-use token
                 // GP API requires a charge (not verify) to create multi-use token
                 var response = card.Charge(0.01m)
-                    .WithCurrency("GBP")
+                    .WithCurrency("USD")
                     .WithRequestMultiUseToken(true)
                     .WithAddress(address)
                     .Execute();
