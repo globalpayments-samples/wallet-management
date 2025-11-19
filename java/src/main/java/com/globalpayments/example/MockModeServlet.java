@@ -41,9 +41,7 @@ public class MockModeServlet extends HttpServlet {
             throws ServletException, IOException {
         
         handleCORS(response);
-        
-        System.out.println("📊 MOCK MODE STATUS - Current state: " + getMockModeStatus());
-        
+
         Map<String, Object> mockModeConfig = new HashMap<>();
         mockModeConfig.put("isEnabled", mockModeEnabled);
         
@@ -74,14 +72,8 @@ public class MockModeServlet extends HttpServlet {
                 return;
             }
             
-            boolean previousState = mockModeEnabled;
             mockModeEnabled = isEnabled;
-            
-            System.out.println("⚙️  MOCK MODE TOGGLE - Changed from " + 
-                getMockModeStatusFor(previousState) + " to " + getMockModeStatusFor(mockModeEnabled));
-            System.out.println("   ⏰ Timestamp: " + LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-            System.out.println("   🎛️  New State: " + getMockModeDescription());
-            
+
             Map<String, Object> mockModeConfig = new HashMap<>();
             mockModeConfig.put("isEnabled", mockModeEnabled);
             
@@ -129,20 +121,8 @@ public class MockModeServlet extends HttpServlet {
         response.getWriter().write(gson.toJson(errorResponse));
     }
     
-    // Helper functions for mock mode
-    private String getMockModeStatus() {
-        return mockModeEnabled ? "🟡 ENABLED" : "🟢 DISABLED";
-    }
-    
-    private String getMockModeStatusFor(boolean enabled) {
-        return enabled ? "🟡 ENABLED" : "🟢 DISABLED";
-    }
-    
+    // Helper function for mock mode
     private String getMockModeText() {
         return mockModeEnabled ? "enabled" : "disabled";
-    }
-    
-    private String getMockModeDescription() {
-        return mockModeEnabled ? "Mock mode will be used for all operations" : "Live API will be attempted first";
     }
 }

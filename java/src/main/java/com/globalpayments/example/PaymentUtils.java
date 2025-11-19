@@ -108,9 +108,7 @@ public class PaymentUtils {
                 String last4 = response.getCardLast4() != null ? response.getCardLast4() : "";
                 String expiryMonth = String.format("%02d", response.getCardExpMonth() > 0 ? response.getCardExpMonth() : 0);
                 String expiryYear = String.format("%02d", response.getCardExpYear() > 0 ? response.getCardExpYear() % 100 : 0);
-                
-                System.out.println("🔍 Token lookup successful: " + cardBrand + " ending in " + last4);
-                
+
                 Map<String, String> cardDetails = new HashMap<>();
                 cardDetails.put("brand", cardBrand);
                 cardDetails.put("last4", last4);
@@ -162,8 +160,6 @@ public class PaymentUtils {
 
             if ("SUCCESS".equals(response.getResponseCode()) &&
                 "CAPTURED".equals(response.getResponseMessage())) {
-                System.out.println("✅ Payment charged successfully: " + response.getTransactionId());
-                
                 Map<String, Object> result = new HashMap<>();
                 result.put("transactionId", response.getTransactionId() != null ? response.getTransactionId() : "txn_" + UUID.randomUUID().toString());
                 result.put("amount", amount);
@@ -267,16 +263,6 @@ public class PaymentUtils {
                 "CAPTURED".equals(response.getResponseMessage())) {
                 String brand = determineCardBrandFromType(cardDetails.cardType);
                 String finalToken = response.getToken() != null ? response.getToken() : paymentToken;
-
-                System.out.println("✅ MULTI-USE TOKEN CREATION SUCCESS:");
-                System.out.println("   ⏰ Timestamp: " + LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-                System.out.println("   🎯 Original Token: " + paymentToken.substring(0, Math.min(8, paymentToken.length())) + "...");
-                System.out.println("   🔄 Multi-Use Token: " + finalToken.substring(0, Math.min(8, finalToken.length())) + "...");
-                System.out.println("   💳 Card Brand: " + brand);
-                System.out.println("   🔢 Last 4: " + cardDetails.cardLast4);
-                System.out.println("   📅 Expiry: " + cardDetails.expiryMonth + "/" + cardDetails.expiryYear);
-                System.out.println("   👤 Customer: " + customerData.firstName + " " + customerData.lastName);
-                System.out.println("   📍 Address: " + customerData.city + ", " + customerData.state + " " + customerData.billingZip);
 
                 return new MultiUseTokenResult(
                     finalToken,
