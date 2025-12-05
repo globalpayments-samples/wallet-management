@@ -11,3 +11,9 @@ target/
 .idea/
 *.iml
 .vscode/
+
+## macOS
+.DS_Store
+
+## Payment Data (sensitive)
+data/*.json

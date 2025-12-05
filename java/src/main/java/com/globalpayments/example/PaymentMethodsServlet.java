@@ -1,0 +1,348 @@
+package com.globalpayments.example;
+
+import com.google.gson.Gson;
+import io.github.cdimascio.dotenv.Dotenv;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * Payment Methods Endpoint
+ * 
+ * GET /payment-methods - Retrieve saved payment methods
+ * POST /payment-methods - Create new payment method (stored payment token) OR edit existing payment method
+ *                         - Create: Requires storedPaymentToken (+ optional nickname, isDefault)
+ *                         - Edit: Requires id (+ optional nickname, isDefault) - only nickname and default status can be edited
+ */
+@WebServlet(name = "PaymentMethodsServlet", urlPatterns = {"/payment-methods"})
+public class PaymentMethodsServlet extends HttpServlet {
+    
+    private static final Gson gson = new Gson();
+    private final Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
+    
+    @Override
+    public void init() throws ServletException {
+        try {
+            PaymentUtils.configureSdk();
+        } catch (Exception e) {
+            throw new ServletException("Failed to configure Global Payments SDK", e);
+        }
+    }
+    
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        
+        handleCORS(response);
+        
+        try {
+            List<Map<String, Object>> paymentMethods = JsonStorage.getFormattedPaymentMethods();
+            
+            Map<String, Object> responseData = new HashMap<>();
+            responseData.put("success", true);
+            responseData.put("data", paymentMethods);
+            responseData.put("message", "Payment methods retrieved successfully");
+            responseData.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+            
+            response.getWriter().write(gson.toJson(responseData));
+            
+        } catch (Exception e) {
+            sendErrorResponse(response, 500, "Failed to retrieve payment methods", "SERVER_ERROR");
+        }
+    }
+    
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        
+        handleCORS(response);
+        
+        try {
+            // Parse JSON input
+            String jsonString = request.getReader().lines().collect(Collectors.joining());
+            @SuppressWarnings("unchecked")
+            Map<String, Object> data = gson.fromJson(jsonString, Map.class);
+
+            // Check if this is an edit operation
+            if (data != null && data.get("id") != null) {
+                handleEditPaymentMethod(response, data);
+                return;
+            }
+
+            // Check if this is a multi-use token creation with customer data
+            String paymentToken = (String) data.get("paymentToken");
+            String storedPaymentToken = (String) data.get("storedPaymentToken");
+
+            // Validate required fields - either paymentToken + customerData for multi-use, or storedPaymentToken for existing
+            if (paymentToken == null && storedPaymentToken == null) {
+                sendErrorResponse(response, 400, "Missing required payment token or stored payment token", "VALIDATION_ERROR");
+                return;
+            }
+
+            String nickname = (String) data.get("nickname");
+            Boolean isDefault = (Boolean) data.get("isDefault");
+            
+            boolean mockMode = false;
+            Map<String, String> cardDetails = null;
+            String finalToken = storedPaymentToken;
+
+            // Handle multi-use token creation with customer data
+            if (paymentToken != null) {
+                @SuppressWarnings("unchecked")
+                Map<String, String> customerDataMap = (Map<String, String>) data.get("customerData");
+                @SuppressWarnings("unchecked")
+                Map<String, String> cardDetailsMap = (Map<String, String>) data.get("cardDetails");
+
+                if (customerDataMap == null || cardDetailsMap == null) {
+                    sendErrorResponse(response, 400, "Customer data and card details required for multi-use token creation", "VALIDATION_ERROR");
+                    return;
+                }
+
+                PaymentUtils.CustomerData customerData = new PaymentUtils.CustomerData(customerDataMap);
+                PaymentUtils.CardDetails cardDetailObj = new PaymentUtils.CardDetails(cardDetailsMap);
+
+                // Create multi-use token with customer data or use mock
+                if (MockModeServlet.isMockModeEnabled()) {
+                    mockMode = true;
+                    cardDetails = MockResponses.getCardDetailsFromToken(paymentToken);
+                    finalToken = paymentToken; // In mock mode, use original token
+                } else {
+                    String appKey = dotenv.get("GP_API_APP_KEY");
+                    if (appKey != null && !appKey.trim().isEmpty()) {
+                        try {
+                            PaymentUtils.MultiUseTokenResult multiUseResult = PaymentUtils.createMultiUseTokenWithCustomer(paymentToken, customerData, cardDetailObj);
+                            finalToken = multiUseResult.multiUseToken;
+
+                            // Create cardDetails map from result
+                            cardDetails = new HashMap<>();
+                            cardDetails.put("brand", multiUseResult.brand);
+                            cardDetails.put("last4", multiUseResult.last4);
+                            cardDetails.put("expiryMonth", multiUseResult.expiryMonth);
+                            cardDetails.put("expiryYear", multiUseResult.expiryYear);
+                            cardDetails.put("token", finalToken);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+
+                            // Check if this is an authentication/authorization error
+                            String errorMessage = e.getMessage();
+                            boolean isAuthError = errorMessage != null && (
+                                errorMessage.contains("ACTION_NOT_AUTHORIZED") ||
+                                errorMessage.contains("NOT_AUTHENTICATED") ||
+                                errorMessage.contains("INVALID_CREDENTIALS") ||
+                                errorMessage.contains("Permission")
+                            );
+
+                            if (isAuthError) {
+                                sendErrorResponse(response, 403,
+                                    "Authentication failed: Access token and merchant credentials do not match. Please verify your GP_API_APP_ID and GP_API_APP_KEY configuration.",
+                                    "AUTHENTICATION_ERROR");
+                                return;
+                            }
+
+                            // For other errors, return proper error response (no mock fallback)
+                            sendErrorResponse(response, 500,
+                                "Failed to create payment method: " + errorMessage,
+                                "TOKEN_CREATION_ERROR");
+                            return;
+                        }
+                    } else {
+                        sendErrorResponse(response, 503, "Payment service not configured", "CONFIGURATION_ERROR");
+                        return;
+                    }
+                }
+            } else {
+                // Handle existing stored payment token (legacy flow)
+                finalToken = storedPaymentToken;
+
+                // Check if mock mode is enabled globally
+                if (MockModeServlet.isMockModeEnabled()) {
+                    mockMode = true;
+                    cardDetails = MockResponses.getCardDetailsFromToken(storedPaymentToken);
+                } else {
+                    // Try to get card details from real stored payment token
+                    String appKey = dotenv.get("GP_API_APP_KEY");
+                    if (appKey != null && !appKey.trim().isEmpty()) {
+                        try {
+                            cardDetails = PaymentUtils.getCardDetailsFromToken(storedPaymentToken);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+
+                            // Check if this is an authentication/authorization error
+                            String errorMessage = e.getMessage();
+                            boolean isAuthError = errorMessage != null && (
+                                errorMessage.contains("ACTION_NOT_AUTHORIZED") ||
+                                errorMessage.contains("NOT_AUTHENTICATED") ||
+                                errorMessage.contains("INVALID_CREDENTIALS") ||
+                                errorMessage.contains("Permission")
+                            );
+
+                            if (isAuthError) {
+                                sendErrorResponse(response, 403,
+                                    "Authentication failed: Access token and merchant credentials do not match. Please verify your GP_API_APP_ID and GP_API_APP_KEY configuration.",
+                                    "AUTHENTICATION_ERROR");
+                                return;
+                            }
+
+                            // For other errors, return proper error response (no mock fallback)
+                            sendErrorResponse(response, 500,
+                                "Failed to retrieve token details: " + errorMessage,
+                                "TOKEN_LOOKUP_ERROR");
+                            return;
+                        }
+                    } else {
+                        sendErrorResponse(response, 503, "Payment service not configured", "CONFIGURATION_ERROR");
+                        return;
+                    }
+                }
+            }
+
+            // Validate card details
+            if (cardDetails == null || isEmpty(cardDetails.get("brand")) || isEmpty(cardDetails.get("last4"))) {
+                sendErrorResponse(response, 400, "Invalid token or unable to retrieve card details", "VALIDATION_ERROR");
+                return;
+            }
+
+            // Create payment method data using card details from token
+            String expiry = cardDetails.get("expiryMonth") + "/" + cardDetails.get("expiryYear");
+
+            Map<String, Object> paymentMethodData = new HashMap<>();
+            paymentMethodData.put("storedPaymentToken", finalToken);
+            paymentMethodData.put("cardBrand", cardDetails.get("brand"));
+            paymentMethodData.put("last4", cardDetails.get("last4"));
+            paymentMethodData.put("expiry", expiry);
+            paymentMethodData.put("nickname", nickname != null ? nickname : cardDetails.get("brand") + " ending in " + cardDetails.get("last4"));
+            paymentMethodData.put("isDefault", isDefault != null ? isDefault : false);
+            paymentMethodData.put("mockMode", mockMode);
+
+            // Save to storage
+            Map<String, Object> savedMethod = JsonStorage.addPaymentMethod(paymentMethodData);
+            
+            // Format response
+            Map<String, Object> formattedMethod = new HashMap<>();
+            formattedMethod.put("id", savedMethod.get("id"));
+            formattedMethod.put("brand", savedMethod.get("cardBrand"));
+            formattedMethod.put("last4", savedMethod.get("last4"));
+            formattedMethod.put("expiry", savedMethod.get("expiry"));
+            formattedMethod.put("nickname", savedMethod.get("nickname"));
+            formattedMethod.put("isDefault", savedMethod.get("isDefault"));
+            formattedMethod.put("mockMode", mockMode);
+            
+            Map<String, Object> responseData = new HashMap<>();
+            responseData.put("success", true);
+            responseData.put("data", formattedMethod);
+            responseData.put("message", "Payment method added successfully");
+            responseData.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+            
+            response.getWriter().write(gson.toJson(responseData));
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            sendErrorResponse(response, 500, "Payment method creation failed", "SERVER_ERROR");
+        }
+    }
+    
+    @Override
+    protected void doOptions(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        handleCORS(response);
+        response.setStatus(HttpServletResponse.SC_OK);
+    }
+    
+    private void handleCORS(HttpServletResponse response) {
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        response.setHeader("Access-Control-Allow-Origin", "*");
+        response.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    }
+    
+    private void sendErrorResponse(HttpServletResponse response, int statusCode, String message, String errorCode) 
+            throws IOException {
+        response.setStatus(statusCode);
+        
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("success", false);
+        errorResponse.put("message", message);
+        errorResponse.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+        
+        if (errorCode != null) {
+            errorResponse.put("error_code", errorCode);
+        }
+        
+        response.getWriter().write(gson.toJson(errorResponse));
+    }
+    
+    private boolean isEmpty(String str) {
+        return str == null || str.trim().isEmpty();
+    }
+    
+    private void handleEditPaymentMethod(HttpServletResponse response, Map<String, Object> data) 
+            throws IOException {
+        try {
+            String id = (String) data.get("id");
+            
+            // Find existing payment method
+            Map<String, Object> existingMethod = JsonStorage.findPaymentMethod(id);
+            if (existingMethod == null) {
+                sendErrorResponse(response, 404, "Payment method not found", "NOT_FOUND");
+                return;
+            }
+
+            // Update the payment method
+            Map<String, Object> updateData = new HashMap<>();
+            updateData.put("nickname", data.get("nickname"));
+            updateData.put("isDefault", data.get("isDefault"));
+            
+            JsonStorage.updatePaymentMethod(id, updateData);
+
+            // If setting as default, update all others
+            Boolean isDefault = (Boolean) data.get("isDefault");
+            if (Boolean.TRUE.equals(isDefault)) {
+                JsonStorage.setDefaultPaymentMethod(id);
+            }
+
+            // Get the updated method
+            Map<String, Object> updatedMethod = JsonStorage.findPaymentMethod(id);
+            if (updatedMethod == null) {
+                sendErrorResponse(response, 500, "Server error", "SERVER_ERROR");
+                return;
+            }
+
+            // Format response
+            Map<String, Object> formattedMethod = new HashMap<>();
+            formattedMethod.put("id", updatedMethod.get("id"));
+            formattedMethod.put("brand", updatedMethod.get("cardBrand"));
+            formattedMethod.put("last4", updatedMethod.get("last4"));
+            formattedMethod.put("expiry", updatedMethod.get("expiry"));
+            formattedMethod.put("nickname", updatedMethod.get("nickname"));
+            formattedMethod.put("isDefault", updatedMethod.get("isDefault"));
+            formattedMethod.put("mockMode", false); // Edit operations don't involve mock mode
+
+            Map<String, Object> responseData = new HashMap<>();
+            responseData.put("success", true);
+            responseData.put("data", formattedMethod);
+            responseData.put("message", "Payment method updated successfully");
+            responseData.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+
+            response.getWriter().write(gson.toJson(responseData));
+
+        } catch (Exception e) {
+            System.err.println("Error updating payment method: " + e.getMessage());
+            sendErrorResponse(response, 500, "Payment method update failed", "SERVER_ERROR");
+        }
+    }
+    
+    private String stringOrNone(String s) {
+        return s == null || s.trim().isEmpty() ? "None" : s;
+    }
+}

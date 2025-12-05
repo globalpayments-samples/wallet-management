@@ -1,7 +1,7 @@
 {
-  "name": "card-payments",
+  "name": "vault-wallet-management",
   "version": "1.0.0",
-  "description": "Card payments example using Node.js",
+  "description": "Vault wallet management with multi-use token creation using Node.js and GP API",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

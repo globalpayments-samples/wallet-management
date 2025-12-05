@@ -1,6 +1,6 @@
-# Node.js Card Payment Example
+# Node.js Wallet Management System
 
-This example demonstrates card payment processing using Express.js and the Global Payments SDK.
+A comprehensive wallet management system for storing and managing payment methods using Global Payments multi-use tokens. Built with Express.js and the Global Payments SDK.
 
 ## Requirements
 
