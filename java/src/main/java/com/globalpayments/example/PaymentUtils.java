@@ -196,14 +196,14 @@ public class PaymentUtils {
         public String country;
 
         public CustomerData(Map<String, String> data) {
-            this.firstName = data.getOrDefault("first_name", "");
-            this.lastName = data.getOrDefault("last_name", "");
+            this.firstName = data.getOrDefault("firstName", data.getOrDefault("first_name", ""));
+            this.lastName = data.getOrDefault("lastName", data.getOrDefault("last_name", ""));
             this.email = data.getOrDefault("email", "");
             this.phone = data.getOrDefault("phone", "");
-            this.streetAddress = data.getOrDefault("street_address", "");
+            this.streetAddress = data.getOrDefault("streetAddress", data.getOrDefault("street_address", ""));
             this.city = data.getOrDefault("city", "");
             this.state = data.getOrDefault("state", "");
-            this.billingZip = data.getOrDefault("billing_zip", "");
+            this.billingZip = data.getOrDefault("billingZip", data.getOrDefault("billing_zip", ""));
             this.country = data.getOrDefault("country", "");
         }
     }
