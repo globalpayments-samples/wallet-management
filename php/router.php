@@ -28,10 +28,12 @@ if (empty($path) || $path === '/') {
 }
 
 // Serve static files directly (CSS, JS, images, etc.)
-$staticExtensions = ['css', 'js', 'png', 'jpg', 'jpeg', 'gif', 'ico', 'svg', 'woff', 'woff2', 'ttf'];
+// (never dot files, vendor/ or node_modules/)
+$staticExtensions = ['html', 'css', 'js', 'png', 'jpg', 'jpeg', 'gif', 'ico', 'svg', 'woff', 'woff2', 'ttf'];
 $pathInfo = pathinfo($path);
 if (isset($pathInfo['extension']) && in_array(strtolower($pathInfo['extension']), $staticExtensions)) {
-    if (file_exists($path)) {
+    $isHidden = preg_match('#(^|/)(\.|vendor/|node_modules/)#', rawurldecode($path));
+    if (!$isHidden && file_exists($path)) {
         return false; // Let PHP serve the file with appropriate MIME type
     }
     http_response_code(404);
