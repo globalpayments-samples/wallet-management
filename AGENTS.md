@@ -141,5 +141,5 @@ All four implementations are meant to expose identical behavior. A change to one
 - **PHP**: `globalpayments/php-sdk` ^13.1, `vlucas/phpdotenv` ^5.5
 - **Node.js**: `globalpayments-api` ^3.10.6, `express` ^4.18.2, `dotenv` ^16.3.1 (ES modules)
 - **Java**: `globalpayments-sdk` (com.heartlandpaymentsystems) 14.2.20, `dotenv-java` 3.0.0, Jakarta Servlet 5.0.0
-- **.NET**: `GlobalPayments.Api` 9.0.16, `DotEnv.Net` 3.2.1, net9.0
+- **.NET**: `GlobalPayments.Api` 9.0.16, `DotEnv.Net` 3.2.1, net10.0
 - **Browser**: `https://js.globalpay.com/v1/globalpayments.js`
