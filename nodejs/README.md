@@ -4,7 +4,7 @@ A comprehensive wallet management system for storing and managing payment method
 
 ## Requirements
 
-- Node.js 14.x or later
+- Node.js 24.x or later
 - npm (Node Package Manager)
 - Global Payments account and API credentials
 
