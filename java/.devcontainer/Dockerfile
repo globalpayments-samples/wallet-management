@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/java:23
+FROM mcr.microsoft.com/devcontainers/java:21
 
 ARG MAVEN_VERSION=3.9.11
 ARG USER_HOME_DIR="/root"
