@@ -14,7 +14,7 @@ This example demonstrates a comprehensive wallet management system using Jakarta
 
 ## Requirements
 
-- Java 11 or later
+- Java 21 or later
 - Maven 3.6 or later
 - Global Payments account and API credentials
 
@@ -363,13 +363,13 @@ mvn clean package
 ### Common Issues
 
 **Java Version Issues**:
-- Ensure Java 11 or later is installed
+- Ensure Java 21 or later is installed
 - Check version with `java --version`
 - Verify JAVA_HOME environment variable is set correctly
 - Update Java from https://adoptium.net/ or your distribution package manager
 
 **Maven Build Issues**:
-- Ensure Java 11+ is installed and JAVA_HOME is set
+- Ensure Java 21+ is installed and JAVA_HOME is set
 - Run `mvn clean install` to resolve dependency issues
 - Check internet connection for Maven Central downloads
 - Clear Maven local repository: `mvn dependency:purge-local-repository`

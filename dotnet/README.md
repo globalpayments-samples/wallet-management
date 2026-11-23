@@ -14,7 +14,7 @@ This example demonstrates a comprehensive wallet management system using ASP.NET
 
 ## Requirements
 
-- .NET 9.0 or later
+- .NET 10.0 or later
 - Global Payments account and API credentials
 
 ## Project Structure
