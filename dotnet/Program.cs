@@ -75,8 +75,8 @@ public class Program
 
             var config = new GpApiConfig
             {
-                AppId = System.Environment.GetEnvironmentVariable("GP_API_APP_ID"),
-                AppKey = System.Environment.GetEnvironmentVariable("GP_API_APP_KEY"),
+                AppId = EnvVar("GP_API_APP_ID"),
+                AppKey = EnvVar("GP_API_APP_KEY"),
                 Environment = isProduction ? GpEnvironment.PRODUCTION : GpEnvironment.TEST,
                 Channel = Channel.CardNotPresent,
                 Country = "US"
@@ -88,6 +88,17 @@ public class Program
         {
             Console.Error.WriteLine($"SDK configuration failed: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Reads an environment variable. dotenv.net keeps inline comments, and .env.sample
+    /// has #gitleaks:allow after each key, so anything from " #" on is dropped here.
+    /// </summary>
+    private static string? EnvVar(string name)
+    {
+        var value = System.Environment.GetEnvironmentVariable(name);
+        var comment = value?.IndexOf(" #") ?? -1;
+        return comment >= 0 ? value![..comment].TrimEnd() : value;
     }
 
     private static void ConfigureEndpoints(WebApplication app)
@@ -120,8 +131,8 @@ public class Program
 
                 var config = new GpApiConfig
                 {
-                    AppId = System.Environment.GetEnvironmentVariable("GP_API_APP_ID"),
-                    AppKey = System.Environment.GetEnvironmentVariable("GP_API_APP_KEY"),
+                    AppId = EnvVar("GP_API_APP_ID"),
+                    AppKey = EnvVar("GP_API_APP_KEY"),
                     Environment = isProduction ? GpEnvironment.PRODUCTION : GpEnvironment.TEST,
                     Channel = Channel.CardNotPresent,
                     Country = "US",
