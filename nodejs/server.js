@@ -11,7 +11,6 @@ import { readFileSync } from 'fs';
 import * as dotenv from 'dotenv';
 import {
     GpApiConfig,
-    ServicesContainer,
     Environment,
     Channel,
     AccessTokenInfo,
@@ -63,9 +62,6 @@ app.get('/config', async (req, res) => {
 
         // Set permissions specifically for client-side single-use tokenization
         config.permissions = ['PMT_POST_Create_Single'];
-
-        // Configure service to establish connection
-        ServicesContainer.configureService(config);
 
         // Generate session token for client-side tokenization
         const sessionToken = await GpApiService.generateTransactionKey(config);
