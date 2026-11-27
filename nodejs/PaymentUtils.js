@@ -11,6 +11,10 @@ import {
     Environment,
     Channel,
     AccessTokenInfo,
+    StoredCredential,
+    StoredCredentialInitiator,
+    StoredCredentialSequence,
+    StoredCredentialType,
     TransactionStatus
 } from 'globalpayments-api';
 
@@ -75,7 +79,7 @@ export function determineCardBrandFromType(cardType) {
 
 /**
  * Create multi-use token with customer data attached (GP API)
- * Uses charge-based approach to convert single-use to multi-use token
+ * Uses a Verify to convert single-use to multi-use token, nothing is charged
  */
 export async function createMultiUseTokenWithCustomer(paymentToken, customerData, cardDetails) {
     try {
@@ -92,20 +96,27 @@ export async function createMultiUseTokenWithCustomer(paymentToken, customerData
         address.postalCode = sanitizePostalCode(customerData.billing_zip || '');
         address.country = customerData.country || '';
 
-        // Charge to convert single-use to multi-use token
-        // GP API requires a charge (not verify) to create multi-use token
-        const response = await tokenizedCard.charge(0.01) // Minimal verification amount
+        // First cardholder initiated use of a card saved on file
+        const storedCredential = new StoredCredential();
+        storedCredential.type = StoredCredentialType.UNSCHEDULED;
+        storedCredential.initiator = StoredCredentialInitiator.CardHolder;
+        storedCredential.sequence = StoredCredentialSequence.FIRST;
+
+        // Verify the card and ask for a multi-use token, nothing is charged
+        const response = await tokenizedCard.verify()
             .withCurrency('USD')
             .withRequestMultiUseToken(true)
+            .withStoredCredentials(storedCredential)
             .withAddress(address)
             .execute();
 
         // Validate GP API response
         if (response.responseCode === 'SUCCESS' &&
-            response.responseMessage === TransactionStatus.CAPTURED) {
+            response.responseMessage === 'VERIFIED' &&
+            response.token) {
 
             const brand = determineCardBrandFromType(cardDetails.cardType || '');
-            const multiUseToken = response.token || paymentToken;
+            const multiUseToken = response.token;
 
             console.log('Multi-use token created successfully: ' + multiUseToken.substring(0, 8) + '...');
 
