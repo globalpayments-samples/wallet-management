@@ -262,61 +262,45 @@ All test cards use:
 
 ## Multi-Use Token Implementation
 
-The Java implementation converts single-use tokens to multi-use stored payment tokens using GP API's charge-based approach:
+The Java implementation converts single-use tokens to multi-use stored payment tokens with a Verify, so saving a card never charges the customer:
 
 ### Key Features
 
-- **Charge-Based Tokenization**: Uses a minimal $0.01 USD charge to convert single-use tokens to multi-use
+- **Verify, not a charge**: Verifies the card with GP API and stores it, nothing is charged
+- **Credentials on File**: The Verify is flagged as the first cardholder initiated use of a stored card (unscheduled)
+- **Multi-use token**: The Java SDK does not send storage_mode on a Verify with a token, and its `updateToken()` request is rejected by GP API (no X-GP-Version header), so after a VERIFIED result the sample switches the same token to multi-use itself with `PATCH /payment-methods/{id}` and `usage_mode` `MULTIPLE`
 - **Customer Data Integration**: Associates customer billing information with payment methods
-- **CAPTURED Validation**: Validates response with "CAPTURED" status from GP API
-- **Thread-Safe Processing**: Concurrent servlet handling for multi-use token creation
-- **Type-Safe Implementation**: Uses strongly-typed Java classes for all token operations
+- **Failed cards are not saved**: Anything other than VERIFIED returns an error and nothing is stored
 
 ### Token Creation Process
 
 ```java
-public static MultiUseTokenResult createMultiUseTokenWithCustomer(
-        String paymentToken, CustomerData customerData, CardDetails cardDetails) throws Exception {
+StoredCredential storedCredential = new StoredCredential()
+        .setType(StoredCredentialType.Unscheduled)
+        .setInitiator(StoredCredentialInitiator.CardHolder)
+        .setSequence(StoredCredentialSequence.First);
 
-    CreditCardData card = new CreditCardData();
-    card.setToken(paymentToken);
-    card.setCardHolderName((customerData.firstName + " " + customerData.lastName).trim());
+Transaction response = card.verify()
+        .withCurrency("USD")
+        .withRequestMultiUseToken(true)
+        .withStoredCredential(storedCredential)
+        .withAddress(address)
+        .execute();
 
-    Address address = new Address();
-    address.setStreetAddress1(customerData.streetAddress.trim());
-    address.setCity(customerData.city.trim());
-    address.setState(customerData.state.trim());
-    address.setPostalCode(sanitizePostalCode(customerData.billingZip));
-    address.setCountry(customerData.country.trim());
-
-    // Charge $0.01 USD to convert single-use to multi-use token
-    Transaction response = card.charge(new BigDecimal("0.01"))
-            .withCurrency("USD")
-            .withRequestMultiUseToken(true)
-            .withAddress(address)
-            .execute();
-
-    // Validate GP API response
-    if ("SUCCESS".equals(response.getResponseCode()) &&
-        "CAPTURED".equals(response.getResponseMessage())) {
-
-        return new MultiUseTokenResult(
-            response.getToken() != null ? response.getToken() : paymentToken,
-            determineCardBrandFromType(cardDetails.cardType),
-            cardDetails.cardLast4,
-            cardDetails.expiryMonth,
-            cardDetails.expiryYear,
-            customerData
-        );
+if ("SUCCESS".equals(response.getResponseCode()) &&
+    "VERIFIED".equals(response.getResponseMessage())) {
+    String finalToken = response.getToken();
+    if (finalToken == null || finalToken.isEmpty()) {
+        makeTokenMultiUse(paymentToken); // PATCH /payment-methods/{id} {"usage_mode":"MULTIPLE"}
+        finalToken = paymentToken;
     }
-
-    throw new Exception("Multi-use token creation failed");
+    // store finalToken
 }
 ```
 
 ### Implementation Benefits
 
-- **GP API Native**: Uses GP API's recommended charge-based approach
+- **No charge to save**: A Verify checks the card without moving money
 - **Thread Safety**: Servlet-based architecture with concurrent request handling
 - **Type Safety**: Compile-time validation with Java's type system
 - **Enterprise Ready**: Built on Jakarta EE standards for scalability

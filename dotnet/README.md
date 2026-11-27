@@ -256,67 +256,50 @@ All test cards use:
 
 ## Multi-Use Token Implementation
 
-The .NET implementation converts single-use tokens to multi-use stored payment tokens using GP API's charge-based approach:
+The .NET implementation converts single-use tokens to multi-use stored payment tokens with a Verify, so saving a card never charges the customer:
 
 ### Key Features
 
-- **Charge-Based Tokenization**: Uses a minimal 0.01 GBP charge to convert single-use tokens to multi-use
+- **Verify, not a charge**: Verifies the card with GP API and stores it, nothing is charged
+- **Credentials on File**: The Verify is flagged as the first cardholder initiated use of a stored card (unscheduled)
+- **Multi-use token**: The .NET SDK does not send storage_mode on a Verify with a token, so after a VERIFIED result the same token is switched to multi-use with `UpdateToken()`
 - **Customer Data Integration**: Associates customer billing information with payment methods
-- **CAPTURED Validation**: Validates response with "CAPTURED" status from GP API
-- **Type-Safe Implementation**: Uses strongly-typed C# models for all token operations
+- **Failed cards are not saved**: Anything other than VERIFIED returns an error and nothing is stored
 
 ### Token Creation Process
 
 ```csharp
-public static async Task<MultiUseTokenResult> CreateMultiUseTokenWithCustomerAsync(
-    string paymentToken,
-    CustomerData customerData,
-    CardDetails cardDetails)
+var storedCredential = new StoredCredential
 {
-    var card = new CreditCardData
-    {
-        Token = paymentToken,
-        CardHolderName = $"{customerData.FirstName} {customerData.LastName}"
-    };
+    Type = StoredCredentialType.Unscheduled,
+    Initiator = StoredCredentialInitiator.CardHolder,
+    Sequence = StoredCredentialSequence.First
+};
 
-    var address = new Address
-    {
-        StreetAddress1 = customerData.StreetAddress,
-        City = customerData.City,
-        Province = customerData.State,
-        PostalCode = SanitizePostalCode(customerData.BillingZip),
-        Country = customerData.Country
-    };
+var response = card.Verify()
+    .WithCurrency("USD")
+    .WithRequestMultiUseToken(true)
+    .WithStoredCredential(storedCredential)
+    .WithAddress(address)
+    .Execute();
 
-    // Charge 0.01 GBP to convert single-use to multi-use token
-    var response = card.Charge(0.01m)
-        .WithCurrency("GBP")
-        .WithRequestMultiUseToken(true)
-        .WithAddress(address)
-        .Execute();
-
-    // Validate GP API response
-    if (response.ResponseCode == "SUCCESS" &&
-        response.ResponseMessage == "CAPTURED")
+if (response.ResponseCode == "SUCCESS" && response.ResponseMessage == "VERIFIED")
+{
+    var multiUseToken = response.Token;
+    if (string.IsNullOrEmpty(multiUseToken))
     {
-        return new MultiUseTokenResult
-        {
-            MultiUseToken = response.Token ?? paymentToken,
-            Brand = DetermineCardBrandFromType(cardDetails.CardType),
-            Last4 = cardDetails.CardLast4,
-            ExpiryMonth = cardDetails.ExpiryMonth,
-            ExpiryYear = cardDetails.ExpiryYear,
-            CustomerData = customerData
-        };
+        card.UpdateToken()
+            .WithPaymentMethodUsageMode(PaymentMethodUsageMode.Multiple)
+            .Execute();
+        multiUseToken = paymentToken;
     }
-
-    throw new Exception("Multi-use token creation failed");
+    // store multiUseToken
 }
 ```
 
 ### Implementation Benefits
 
-- **GP API Native**: Uses GP API's recommended charge-based approach
+- **No charge to save**: A Verify checks the card without moving money
 - **Type Safety**: Strongly-typed models prevent runtime errors
 - **Customer Context**: Enhanced user experience with stored customer data
 - **PCI Compliance**: Card data never touches your servers

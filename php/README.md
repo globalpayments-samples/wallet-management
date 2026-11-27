@@ -57,9 +57,9 @@ Users enter their billing information and payment details through a secure Globa
 - Payment card information (handled by Global Payments JS SDK)
 
 ### 2. Multi-Use Token Creation (GP API)
-The system creates enhanced stored payment tokens with integrated customer data using GP API's charge-based flow:
-- Single-use payment tokens are converted to multi-use stored payment tokens via a verification charge
-- GP API requires a minimal charge ($0.01) to create multi-use tokens (PMT_xxx format)
+The system creates enhanced stored payment tokens with integrated customer data using a GP API Verify:
+- Single-use payment tokens are verified and converted to multi-use stored payment tokens (PMT_xxx format), nothing is charged
+- The Verify is flagged as the first cardholder initiated use of a stored card, and a card that is not VERIFIED is not saved
 - Customer billing information is associated with each payment method
 - Address and contact data enables enhanced fraud protection and user experience
 - Customer context is maintained for regulatory compliance and support
@@ -72,12 +72,12 @@ Saved payment methods enable secure storage and management:
 
 ### 4. Data Flow
 ```
-Frontend Form → GP API Tokenization (Single-Use) → Backend Charge ($0.01) → Multi-Use Token (PMT_xxx) + Customer Data → Secure Storage → Wallet Management
+Frontend Form → GP API Tokenization (Single-Use) → Backend Verify → Multi-Use Token (PMT_xxx) + Customer Data → Secure Storage → Wallet Management
 ```
 
 ### Key Implementation (GP API)
 - **Frontend**: Uses GP API access token for secure client-side single-use tokenization
-- **Backend**: Converts single-use to multi-use tokens via charge with `createMultiUseTokenWithCustomer()` method
+- **Backend**: Converts single-use to multi-use tokens via a Verify with `createMultiUseTokenWithCustomer()` method
 - **Token Format**: Multi-use tokens use PMT_xxx prefix (GP API standard)
 - **Storage**: JSON-based persistence including customer information with payment methods
 - **Processing**: Uses stored stored payment tokens with associated customer data for payments
@@ -169,11 +169,11 @@ Response:
 
 ## Multi-Use Token Implementation (GP API)
 
-This system creates multi-use tokens using GP API's charge-based approach, combining stored payment tokens with customer data for secure wallet management.
+This system creates multi-use tokens with a GP API Verify, so saving a card never charges the customer, combining stored payment tokens with customer data for secure wallet management.
 
 ### Key Features
 
-- **GP API Charge-Based Flow**: Converts single-use tokens to multi-use via verification charge
+- **GP API Verify**: Converts single-use tokens to multi-use with a Verify, nothing is charged
 - **Customer Data Integration**: Associates customer billing information with payment methods
 - **Secure Storage**: Maintains PCI compliance while storing customer context
 - **Wallet Management**: Enables secure storage of payment methods using stored PMT_xxx tokens
@@ -182,7 +182,7 @@ This system creates multi-use tokens using GP API's charge-based approach, combi
 
 1. **Frontend Collection**: Customer enters payment and billing details
 2. **GP API Tokenization**: Card data is tokenized by GP API JS SDK (single-use token)
-3. **Backend Verification Charge**: $0.01 charge converts single-use to multi-use token
+3. **Backend Verify**: A Verify with `withRequestMultiUseToken(true)` converts the single-use token to a multi-use one
 4. **Multi-Use Token Response**: GP API returns PMT_xxx format multi-use token
 5. **Secure Storage**: Enhanced token with customer context is stored securely
 
@@ -208,7 +208,7 @@ $multiUseToken = PaymentUtils::createMultiUseTokenWithCustomer(
     $cardDetails  // Card metadata from frontend
 );
 
-// GP API performs $0.01 charge and returns multi-use token (PMT_xxx)
+// GP API verifies the card and returns a multi-use token (PMT_xxx), nothing is charged
 ```
 
 ### Implementation Benefits
