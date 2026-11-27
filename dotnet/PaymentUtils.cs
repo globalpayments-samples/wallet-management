@@ -1,4 +1,5 @@
 using GlobalPayments.Api.Entities;
+using GlobalPayments.Api.Entities.Enums;
 using GlobalPayments.Api.PaymentMethods;
 using System.Text.RegularExpressions;
 
@@ -43,7 +44,7 @@ public static class PaymentUtils
 
     /// <summary>
     /// Create multi-use token with customer data attached (GP API)
-    /// Uses charge-based approach to convert single-use to multi-use token
+    /// Uses a Verify to convert single-use to multi-use token, nothing is charged
     /// </summary>
     public static async Task<MultiUseTokenResult> CreateMultiUseTokenWithCustomerAsync(string paymentToken, CustomerData customerData, CardDetails cardDetails)
     {
@@ -67,19 +68,44 @@ public static class PaymentUtils
                     Country = customerData.Country?.Trim() ?? ""
                 };
 
-                // Charge to convert single-use to multi-use token
-                // GP API requires a charge (not verify) to create multi-use token
-                var response = card.Charge(0.01m)
+                // First cardholder initiated use of a card saved on file
+                var storedCredential = new StoredCredential
+                {
+                    Type = StoredCredentialType.Unscheduled,
+                    Initiator = StoredCredentialInitiator.CardHolder,
+                    Sequence = StoredCredentialSequence.First
+                };
+
+                // Verify the card and ask for a multi-use token, nothing is charged
+                var response = card.Verify()
                     .WithCurrency("USD")
                     .WithRequestMultiUseToken(true)
+                    .WithStoredCredential(storedCredential)
                     .WithAddress(address)
                     .Execute();
 
                 if (response.ResponseCode == "SUCCESS" &&
-                    response.ResponseMessage == "CAPTURED")
+                    response.ResponseMessage == "VERIFIED")
                 {
+                    // The .NET SDK leaves storage_mode off a Verify on a token, so GP API returns no
+                    // multi-use token. Switch the verified token to multi-use instead.
+                    var multiUseToken = response.Token;
+                    if (string.IsNullOrEmpty(multiUseToken))
+                    {
+                        if (int.TryParse(cardDetails.ExpiryMonth, out var expMonth)) card.ExpMonth = expMonth;
+                        if (int.TryParse(cardDetails.ExpiryYear, out var expYear)) card.ExpYear = expYear < 100 ? 2000 + expYear : expYear;
+
+                        var update = card.UpdateToken()
+                            .WithPaymentMethodUsageMode(PaymentMethodUsageMode.Multiple)
+                            .Execute();
+                        if (update.TokenUsageMode != PaymentMethodUsageMode.Multiple)
+                        {
+                            throw new Exception("Could not make the card token multi-use");
+                        }
+                        multiUseToken = paymentToken;
+                    }
+
                     var brand = DetermineCardBrandFromType(cardDetails.CardType ?? "");
-                    var multiUseToken = response.Token ?? paymentToken;
 
                     return new MultiUseTokenResult
                     {
