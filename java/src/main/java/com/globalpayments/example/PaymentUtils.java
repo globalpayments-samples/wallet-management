@@ -2,20 +2,33 @@ package com.globalpayments.example;
 
 import com.global.api.ServicesContainer;
 import com.global.api.entities.Address;
+import com.global.api.entities.StoredCredential;
 import com.global.api.entities.Transaction;
 import com.global.api.entities.enums.Channel;
 import com.global.api.entities.enums.Environment;
+import com.global.api.entities.enums.StoredCredentialInitiator;
+import com.global.api.entities.enums.StoredCredentialSequence;
+import com.global.api.entities.enums.StoredCredentialType;
 import com.global.api.entities.exceptions.ApiException;
 import com.global.api.entities.exceptions.ConfigurationException;
 import com.global.api.paymentMethods.CreditCardData;
 import com.global.api.serviceConfigs.GpApiConfig;
 import com.global.api.services.GpApiService;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import io.github.cdimascio.dotenv.Dotenv;
 
+import java.io.InputStream;
 import java.math.BigDecimal;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.zip.GZIPInputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -253,16 +266,31 @@ public class PaymentUtils {
             address.setPostalCode(sanitizePostalCode(customerData.billingZip));
             address.setCountry(customerData.country.trim());
 
-            Transaction response = card.charge(new BigDecimal("0.01"))
+            // First cardholder initiated use of a card saved on file
+            StoredCredential storedCredential = new StoredCredential()
+                    .setType(StoredCredentialType.Unscheduled)
+                    .setInitiator(StoredCredentialInitiator.CardHolder)
+                    .setSequence(StoredCredentialSequence.First);
+
+            // Verify the card and ask for a multi-use token, nothing is charged
+            Transaction response = card.verify()
                     .withCurrency("USD")
                     .withRequestMultiUseToken(true)
+                    .withStoredCredential(storedCredential)
                     .withAddress(address)
                     .execute();
 
             if ("SUCCESS".equals(response.getResponseCode()) &&
-                "CAPTURED".equals(response.getResponseMessage())) {
+                "VERIFIED".equals(response.getResponseMessage())) {
+                // The Java SDK leaves storage_mode off a Verify on a token, so GP API returns no
+                // multi-use token. Switch the verified token to multi-use instead.
+                String finalToken = response.getToken();
+                if (finalToken == null || finalToken.isEmpty()) {
+                    makeTokenMultiUse(paymentToken);
+                    finalToken = paymentToken;
+                }
+
                 String brand = determineCardBrandFromType(cardDetails.cardType);
-                String finalToken = response.getToken() != null ? response.getToken() : paymentToken;
 
                 return new MultiUseTokenResult(
                     finalToken,
@@ -278,6 +306,47 @@ public class PaymentUtils {
         } catch (Exception e) {
             System.err.println("Multi-use token creation error: " + e.getMessage());
             throw e;
+        }
+    }
+
+    /**
+     * Switch a token to multi-use with PATCH /payment-methods/{id}. The SDK's updateToken()
+     * request goes out without the X-GP-Version header and GP API rejects it, so this one
+     * call is made directly with an access token from the SDK.
+     */
+    private static void makeTokenMultiUse(String token) throws Exception {
+        boolean isProduction = "production".equalsIgnoreCase(dotenv.get("GP_API_ENVIRONMENT", "sandbox"));
+
+        GpApiConfig config = new GpApiConfig();
+        config.setAppId(dotenv.get("GP_API_APP_ID"));
+        config.setAppKey(dotenv.get("GP_API_APP_KEY"));
+        config.setEnvironment(isProduction ? Environment.PRODUCTION : Environment.TEST);
+        config.setChannel(Channel.CardNotPresent);
+        config.setCountry("US");
+        String accessToken = GpApiService.generateTransactionKey(config).getAccessToken();
+
+        String baseUrl = isProduction ? "https://apis.globalpay.com/ucp" : "https://apis.sandbox.globalpay.com/ucp";
+        HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + "/payment-methods/" + token))
+                .header("Authorization", "Bearer " + accessToken)
+                .header("X-GP-Version", "2021-03-22")
+                .header("Content-Type", "application/json")
+                .method("PATCH", HttpRequest.BodyPublishers.ofString("{\"usage_mode\":\"MULTIPLE\"}"))
+                .build();
+        HttpResponse<InputStream> result = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofInputStream());
+
+        // GP API gzips the response even when the request does not ask for it
+        InputStream stream = result.body();
+        if ("gzip".equalsIgnoreCase(result.headers().firstValue("Content-Encoding").orElse(""))) {
+            stream = new GZIPInputStream(stream);
+        }
+        String text;
+        try (InputStream in = stream) {
+            text = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        }
+
+        JsonObject body = result.statusCode() == 200 ? JsonParser.parseString(text).getAsJsonObject() : null;
+        if (body == null || !body.has("usage_mode") || !"MULTIPLE".equals(body.get("usage_mode").getAsString())) {
+            throw new Exception("Could not make the card token multi-use (HTTP " + result.statusCode() + ")");
         }
     }
 
