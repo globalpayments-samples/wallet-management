@@ -4,6 +4,7 @@ WORKDIR /app
 
 # Copy pom.xml and download dependencies
 COPY pom.xml .
+COPY .mvn ./.mvn
 RUN mvn dependency:go-offline -B
 
 # Copy source code and build
@@ -21,6 +22,7 @@ RUN apk add --no-cache maven
 # Copy built application and pom.xml
 COPY --from=builder /app/target ./target
 COPY --from=builder /app/pom.xml .
+COPY --from=builder /app/.mvn ./.mvn
 COPY --from=builder /root/.m2 /root/.m2
 
 # Create non-root user
