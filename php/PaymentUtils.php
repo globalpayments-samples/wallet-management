@@ -9,8 +9,12 @@ use GlobalPayments\Api\Entities\Address;
 use GlobalPayments\Api\Entities\Customer;
 use GlobalPayments\Api\Entities\Enums\Channel;
 use GlobalPayments\Api\Entities\Enums\Environment;
+use GlobalPayments\Api\Entities\Enums\StoredCredentialInitiator;
+use GlobalPayments\Api\Entities\Enums\StoredCredentialSequence;
+use GlobalPayments\Api\Entities\Enums\StoredCredentialType;
 use GlobalPayments\Api\Entities\Enums\TransactionStatus;
 use GlobalPayments\Api\Entities\GpApi\AccessTokenInfo;
+use GlobalPayments\Api\Entities\StoredCredential;
 use GlobalPayments\Api\PaymentMethods\CreditCardData;
 use GlobalPayments\Api\ServiceConfigs\Gateways\GpApiConfig;
 use GlobalPayments\Api\ServicesContainer;
@@ -85,7 +89,7 @@ class PaymentUtils
 
     /**
      * Create multi-use token with customer data attached (GP API)
-     * Uses charge-based approach to convert single-use to multi-use token
+     * Uses a Verify to convert single-use to multi-use token, nothing is charged
      */
     public static function createMultiUseTokenWithCustomer(string $paymentToken, array $customerData, array $cardDetails): array
     {
@@ -103,20 +107,27 @@ class PaymentUtils
             $address->postalCode = self::sanitizePostalCode($customerData['billing_zip'] ?? '');
             $address->country = trim($customerData['country'] ?? '');
 
-            // Charge to convert single-use to multi-use token
-            // GP API requires a charge (not verify) to create multi-use token
-            $response = $tokenizedCard->charge(0.01) // Minimal verification amount
+            // First cardholder initiated use of a card saved on file
+            $storedCredential = new StoredCredential();
+            $storedCredential->type = StoredCredentialType::UNSCHEDULED;
+            $storedCredential->initiator = StoredCredentialInitiator::CARDHOLDER;
+            $storedCredential->sequence = StoredCredentialSequence::FIRST;
+
+            // Verify the card and ask for a multi-use token, nothing is charged
+            $response = $tokenizedCard->verify()
                 ->withCurrency('USD')
                 ->withRequestMultiUseToken(true)
+                ->withStoredCredential($storedCredential)
                 ->withAddress($address)
                 ->execute();
 
             // Validate GP API response
             if ($response->responseCode === 'SUCCESS' &&
-                $response->responseMessage === TransactionStatus::CAPTURED) {
+                $response->responseMessage === 'VERIFIED' &&
+                !empty($response->token)) {
 
                 $brand = self::determineCardBrandFromType($cardDetails['cardType'] ?? '');
-                $multiUseToken = $response->token ?? $paymentToken;
+                $multiUseToken = $response->token;
 
                 return [
                     'multiUseToken' => $multiUseToken,
