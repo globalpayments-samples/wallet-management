@@ -268,7 +268,7 @@ The Java implementation converts single-use tokens to multi-use stored payment t
 
 - **Verify, not a charge**: Verifies the card with GP API and stores it, nothing is charged
 - **Credentials on File**: The Verify is flagged as the first cardholder initiated use of a stored card (unscheduled)
-- **Multi-use token**: The Java SDK does not send storage_mode on a Verify with a token, and its `updateToken()` request is rejected by GP API (no X-GP-Version header), so after a VERIFIED result the sample switches the same token to multi-use itself with `PATCH /payment-methods/{id}` and `usage_mode` `MULTIPLE`
+- **Multi-use token**: The Java SDK does not send storage_mode on a Verify with a token, so after a VERIFIED result the same token is switched to multi-use with `updateToken().withPaymentMethodUsageMode(MULTIPLE)`. The SDK sends that PATCH by changing the request method through reflection, which JDK 17 and later block unless `java.net` and `sun.net.www.protocol.https` are opened, so `.mvn/jvm.config` opens them for `mvn cargo:run` (Tomcat runs inside the Maven JVM)
 - **Customer Data Integration**: Associates customer billing information with payment methods
 - **Failed cards are not saved**: Anything other than VERIFIED returns an error and nothing is stored
 
@@ -291,7 +291,9 @@ if ("SUCCESS".equals(response.getResponseCode()) &&
     "VERIFIED".equals(response.getResponseMessage())) {
     String finalToken = response.getToken();
     if (finalToken == null || finalToken.isEmpty()) {
-        makeTokenMultiUse(paymentToken); // PATCH /payment-methods/{id} {"usage_mode":"MULTIPLE"}
+        card.updateToken()
+                .withPaymentMethodUsageMode(PaymentMethodUsageMode.MULTIPLE)
+                .execute();
         finalToken = paymentToken;
     }
     // store finalToken
